@@ -5,7 +5,7 @@
 #   - https://www.w3schools.com/python/numpy/numpy_creating_arrays.asp
 #   - https://www.datacamp.com/tutorial/decision-tree-classification-python
 #   - https://www.kaggle.com/code/abdokamr/cross-validation-hyperparameters-tuning
-
+#   - https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.select_dtypes.html
 
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.naive_bayes import MultinomialNB
@@ -26,25 +26,15 @@ def main():
     # fetch and load the dataset
     dataset = datasets.fetch_openml(data_id=4534)
 
-    # before the process
-    print('before processing:')
-    print(dataset.feature_names)
-
-    # after the process
-    print('\nafter processing: ')
-
-
-
-
-
-
     data = dataset.data  # extract the data from the dataset
     data_frame = pd.DataFrame(data)  # create the DataFrame
     categorical_cols = data_frame.select_dtypes(include=['object', 'category']).columns  # select categorical columns
-    encoder = OneHotEncoder(sparse_output=False)  # initialize the encoder
-    processed_data = encoder.fit_transform(data_frame[categorical_cols])
+    column_transformer = ColumnTransformer([("encoder", OneHotEncoder(sparse_output=False),
+                                             categorical_cols)], remainder="passthrough")
+    processed_data = column_transformer.fit_transform(dataset.data)
     # create a DataFrame object by using the processed data (which is a numpy array)
-    vir_new_data = pd.DataFrame(processed_data, columns=encoder.get_feature_names_out(categorical_cols))
+    vir_new_data = pd.DataFrame(processed_data,
+                                columns=column_transformer.get_feature_names_out(), index=dataset.data.index)
 
     # at this point in the program, the data should now have been processed into numerical values
 
@@ -160,7 +150,7 @@ def main():
     print('\nRandom Forest Classifier Model Accuracy: ')
     print('Test Score: ', random_forest_test_scores['test_score'].mean())
 
-    # Heterogeneous Ensemble
+    # Voting Ensemble
     voting_model = VotingClassifier([('naive-bayes', naive_bayes_model),
                                      ('decision-tree', decision_tree_model),
                                      ('k-nearest neighbors', knn_model),
